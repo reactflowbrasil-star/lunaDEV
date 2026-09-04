@@ -18,10 +18,9 @@ export async function POST(request:NextRequest){
   const {apiKey, validateOnly}=await request.json();
   if(typeof apiKey!=="string"||apiKey.trim().length<20)return NextResponse.json({error:"Informe uma chave Gemini válida."},{status:400});
   await listModels(apiKey.trim());
-  if(validateOnly)return NextResponse.json({valid:true,message:"Chave válida e aceita pelo Gemini."});
-  if(validateOnly)return NextResponse.json({valid:true,message:"Chave válida e aceita pelo Gemini."});
+  if(validateOnly)return NextResponse.json({valid:true,message:"Chave válida e aceita pelo Gemini.",authMode:"x-goog-api-key"});
   const encrypted=await encryptCredential(apiKey.trim());
-  const response=NextResponse.json({configured:true,message:"Gemini conectado com sucesso."});
+  const response=NextResponse.json({configured:true,message:"Gemini conectado com sucesso.",authMode:"x-goog-api-key"});
   response.cookies.set(credentialCookieName(),encrypted,{httpOnly:true,secure:true,sameSite:"strict",path:"/",maxAge:60*60*24*30});
   return response;
  }catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Não foi possível validar a chave."},{status:400})}
