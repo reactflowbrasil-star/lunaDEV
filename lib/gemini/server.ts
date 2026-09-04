@@ -48,7 +48,8 @@ export class GeminiApiError extends Error {
 
 export async function listModels(apiKey?:string|null): Promise<GeminiModel[]> {
   const key = getApiKey(apiKey);
-  const response = await fetch(`${API_BASE}/models?key=${encodeURIComponent(key)}`, {
+  const response = await fetch(`${API_BASE}/models`, {
+    headers: { "x-goog-api-key": key },
     cache: "no-store",
     signal: AbortSignal.timeout(15_000),
   });
@@ -102,9 +103,9 @@ export async function generateMedia(input: {
       ...(input.resolution ? { resolution: input.resolution } : {}),
     },
   };
-  const response = await fetch(`${API_BASE}/interactions?key=${encodeURIComponent(key)}`, {
+  const response = await fetch(`${API_BASE}/interactions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(input.kind === "video" ? 290_000 : 120_000),
   });
