@@ -60,7 +60,7 @@ export default function Home(){
     {resultUrl&&<div className="result"><div><span>CAMPANHA GERADA</span><strong>Modelo: {usedModel}</strong></div><video src={resultUrl} controls playsInline/><a href={resultUrl} download="campanha-lunadev.mp4">Baixar vídeo</a></div>}
     {message&&<div className={resultUrl?"success notice":"notice"}>{generating&&<i className="spinner"/>}{message}</div>}<div className="actions"><button className="secondary" onClick={()=>step===1?setView("home"):setStep(step-1)}>Voltar</button>{step<5?<button className="primary" onClick={next}>Continuar<ArrowRight/></button>:<button className="primary" disabled={generating} onClick={generate}><Sparkles/>{generating?"Gerando campanha…":`Gerar campanha · ${total} créditos`}</button>}</div>
    </section>}
-  </main><nav className="mobileNav"><button onClick={()=>setView("home")}><HomeIcon/>Início</button><button className="new" onClick={start}><Plus/></button><button onClick={()=>setView("history")}><LayoutGrid/>Campanhas</button></nav>
+  </main><nav className="mobileNav"><button className={view==="home"?"active":""} onClick={()=>setView("home")}><HomeIcon/>Início</button><button className="new" onClick={start}><Plus/></button><button className={view==="history"?"active":""} onClick={()=>setView("history")}><LayoutGrid/>Campanhas</button><button className={view==="settings"?"active":""} onClick={()=>setView("settings")}><Settings/>Configurações</button></nav>
  </div>
 }
 
