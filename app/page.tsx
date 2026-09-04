@@ -15,12 +15,32 @@ const formats=["Vídeo UGC","Review de produto","Unboxing","Demonstração","Lif
 export default function Home(){
  const [view,setView]=useState<"home"|"wizard"|"history">("home"),[step,setStep]=useState(1);
  const [img,setImg]=useState<string|null>(null),[name,setName]=useState(""),[message,setMessage]=useState("");
+ const [generating,setGenerating]=useState(false),[resultUrl,setResultUrl]=useState<string|null>(null),[usedModel,setUsedModel]=useState("");
  const [brief,setBrief]=useState(""),[talent,setTalent]=useState(0),[format,setFormat]=useState(formats[0]),[ratio,setRatio]=useState("9:16"),[duration,setDuration]=useState("15s"),[scenes,setScenes]=useState(baseScenes);
  const input=useRef<HTMLInputElement>(null),total=useMemo(()=>scenes.reduce((a,s)=>a+s.cost,0),[scenes]);
  const start=()=>{setView("wizard");setStep(1);setMessage("")};
  const pick=(file?:File)=>{if(!file)return;if(!/image\/(jpeg|png|webp)/.test(file.type)){setMessage("Envie uma imagem JPG, PNG ou WEBP.");return}if(file.size>10485760){setMessage("A imagem deve ter no máximo 10 MB.");return}setImg(URL.createObjectURL(file));setName(file.name);setMessage("")};
  const next=()=>{if(step===1&&!img){setMessage("Envie ao menos uma foto do produto para continuar.");return}setStep(Math.min(5,step+1));setMessage("")};
  const move=(i:number,d:number)=>{let t=i+d;if(t<0||t>=scenes.length)return;let c=[...scenes];[c[i],c[t]]=[c[t],c[i]];setScenes(c)};
+ const generate=async()=>{
+  if(!img||generating)return;
+  setGenerating(true);setMessage("Verificando o Gemini e preparando sua campanha…");setResultUrl(null);
+  try{
+   const statusResponse=await fetch("/api/ai/status",{cache:"no-store"}),status=await statusResponse.json();
+   if(!statusResponse.ok||!status.configured)throw new Error(status.message||"A chave Gemini não está configurada.");
+   setMessage(`Gerando com ${status.models.video}. Isso pode levar alguns minutos…`);
+   const reference=await blobUrlToDataUrl(img);
+   const direction=scenes.map((s,i)=>`Cena ${i+1} — ${s.tag}: ${s.title}. ${s.text}`).join("\n");
+   const prompt=`Crie uma campanha publicitária ${format}, proporção ${ratio}, duração desejada ${duration}. Preserve fielmente o produto da imagem de referência, incluindo embalagem, logotipo, cores e proporções. Apresentadora: ${talents[talent][0]}, estilo ${talents[talent][1]}. Briefing: ${brief||"não informado"}. Roteiro:\n${direction}\nFala natural exclusivamente em português brasileiro. Não insira textos, legendas, preços, títulos ou elementos tipográficos. Áudio sincronizado, aparência realista e movimentos humanos.`;
+   const response=await fetch("/api/ai/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind:"video",prompt,quality:format==="Comercial cinematográfico"?"premium":"balanced",aspectRatio:ratio,resolution:"720p",references:[{data:reference,mimeType:reference.slice(5,reference.indexOf(";"))}]})});
+   const data=await response.json();
+   if(!response.ok)throw new Error(data.error||"A geração não foi concluída.");
+   if(!data.media?.data)throw new Error("O Gemini não retornou o arquivo do vídeo.");
+   setResultUrl(`data:${data.media.mimeType||"video/mp4"};base64,${data.media.data}`);setUsedModel(data.model);
+   setMessage("Campanha concluída. O vídeo está pronto para visualizar e baixar.");
+  }catch(error){setMessage(error instanceof Error?error.message:"Não foi possível concluir a geração. Nenhum crédito foi consumido.");}
+  finally{setGenerating(false);}
+ };
  return <div className="shell">
   <aside><button className="logo" onClick={()=>setView("home")}><b><Sparkles/></b>luna<span>DEV</span></button><nav>
    <button className={view==="home"?"on":""} onClick={()=>setView("home")}><HomeIcon/>Início</button>
@@ -36,7 +56,8 @@ export default function Home(){
     {step===3&&<Talent selected={talent} select={setTalent}/>}
     {step===4&&<Format format={format} setFormat={setFormat} ratio={ratio} setRatio={setRatio} duration={duration} setDuration={setDuration}/>}
     {step===5&&<Storyboard scenes={scenes} setScenes={setScenes} move={move} total={total} talent={talents[talent][0]} format={format} ratio={ratio} duration={duration}/>}
-    {message&&<div className="notice">{message}</div>}<div className="actions"><button className="secondary" onClick={()=>step===1?setView("home"):setStep(step-1)}>Voltar</button>{step<5?<button className="primary" onClick={next}>Continuar<ArrowRight/></button>:<button className="primary" onClick={()=>setMessage("Configure as credenciais Gemini no backend para iniciar a geração real. Nenhum crédito foi consumido.")}><Sparkles/>Gerar campanha · {total} créditos</button>}</div>
+    {resultUrl&&<div className="result"><div><span>CAMPANHA GERADA</span><strong>Modelo: {usedModel}</strong></div><video src={resultUrl} controls playsInline/><a href={resultUrl} download="campanha-lunadev.mp4">Baixar vídeo</a></div>}
+    {message&&<div className={resultUrl?"success notice":"notice"}>{generating&&<i className="spinner"/>}{message}</div>}<div className="actions"><button className="secondary" onClick={()=>step===1?setView("home"):setStep(step-1)}>Voltar</button>{step<5?<button className="primary" onClick={next}>Continuar<ArrowRight/></button>:<button className="primary" disabled={generating} onClick={generate}><Sparkles/>{generating?"Gerando campanha…":`Gerar campanha · ${total} créditos`}</button>}</div>
    </section>}
   </main><nav className="mobileNav"><button onClick={()=>setView("home")}><HomeIcon/>Início</button><button className="new" onClick={start}><Plus/></button><button onClick={()=>setView("history")}><LayoutGrid/>Campanhas</button></nav>
  </div>
@@ -55,3 +76,4 @@ function Storyboard(p:any){return <div className="story"><div><Intro title="Seu 
 function Summary(p:any){return <div className="summary"><h3>Resumo da campanha</h3><dl>{[["Modelo",p.talent],["Formato",p.format],["Proporção",p.ratio],["Duração",p.duration],["Idioma","Português (Brasil)"]].map(x=><div key={x[0]}><dt>{x[0]}</dt><dd>{x[1]}</dd></div>)}</dl><div className="clean"><Check/><span><strong>Vídeo limpo</strong><small>Sem textos ou legendas</small></span></div><div className="total"><span>Custo estimado</span><strong>{p.total} <small>créditos</small></strong><p>Só debitamos após a geração ser concluída.</p></div></div>}
 function History({start}:{start:()=>void}){return <section className="dashboard"><div className="hello"><div><span>BIBLIOTECA CRIATIVA</span><h1>Minhas campanhas</h1><p>Gerencie vídeos, rascunhos e variações.</p></div><button className="primary" onClick={start}><Plus/>Nova campanha</button></div><div className="filters"><label><Search/><input placeholder="Buscar campanha"/></label><button>Todos os status</button><button>Mais recentes</button></div><div className="grid four"><Campaign title="Glow Serum" meta="Vídeo UGC · 15s · Hoje" status="Concluído" color="peach"/><Campaign title="Urban Sneakers" meta="Lifestyle · 30s · Hoje" status="Processando 64%" color="blue"/><Campaign title="Café Origem" meta="Produto premium · Ontem" status="Rascunho" color="brown"/><Campaign title="Bolsa Aura" meta="Comercial · 15s · 28 ago" status="Concluído" color="purple"/></div></section>}
 function Panel({children}:{children:React.ReactNode}){return <div className="panel">{children}</div>}function Intro({title,text,left}:{title:string;text:string;left?:boolean}){return <div className={"intro "+(left?"left":"")}><h2>{title}</h2><p>{text}</p></div>}function Choice({title,children}:{title:string;children:React.ReactNode}){return <div className="choice"><label>{title}</label>{children}</div>}
+async function blobUrlToDataUrl(url:string){const blob=await fetch(url).then(r=>r.blob());return await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Não foi possível ler a imagem do produto."));reader.readAsDataURL(blob)})}
