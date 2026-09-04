@@ -1,12 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { resolveApiKey } from "@/lib/gemini/credential";
 import { chooseModel, GeminiApiError, GeminiConfigError } from "@/lib/gemini/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request:NextRequest) {
   try {
+    const key=await resolveApiKey(request);
     const [text, image, video] = await Promise.all([
-      chooseModel("text"), chooseModel("image"), chooseModel("video"),
+      chooseModel("text","balanced",key), chooseModel("image","balanced",key), chooseModel("video","balanced",key),
     ]);
     return NextResponse.json({
       configured: true,

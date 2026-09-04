@@ -35,8 +35,8 @@ const OVERRIDES: Record<MediaKind, string> = {
   video: "AI_VIDEO_MODEL",
 };
 
-export function getApiKey() {
-  const key = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
+export function getApiKey(provided?:string|null) {
+  const key = provided ?? process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
   if (!key) throw new GeminiConfigError("A variável GEMINI_API_KEY não está configurada.");
   return key;
 }
@@ -46,8 +46,8 @@ export class GeminiApiError extends Error {
   constructor(message: string, public status = 502) { super(message); }
 }
 
-export async function listModels(): Promise<GeminiModel[]> {
-  const key = getApiKey();
+export async function listModels(apiKey?:string|null): Promise<GeminiModel[]> {
+  const key = getApiKey(apiKey);
   const response = await fetch(`${API_BASE}/models?key=${encodeURIComponent(key)}`, {
     cache: "no-store",
     signal: AbortSignal.timeout(15_000),
@@ -57,9 +57,9 @@ export async function listModels(): Promise<GeminiModel[]> {
   return data.models ?? [];
 }
 
-export async function chooseModel(kind: MediaKind, quality: Quality = "balanced") {
+export async function chooseModel(kind: MediaKind, quality: Quality = "balanced", apiKey?:string|null) {
   const override = process.env[OVERRIDES[kind]]?.replace(/^models\//, "");
-  const available = await listModels();
+  const available = await listModels(apiKey);
   const names = new Set(available.map(model => model.name.replace(/^models\//, "")));
   if (override) {
     if (!names.has(override)) throw new GeminiConfigError(
@@ -84,9 +84,10 @@ export async function generateMedia(input: {
   aspectRatio?: string;
   resolution?: string;
   references?: Array<{ data: string; mimeType: string }>;
+  apiKey?: string | null;
 }) {
-  const key = getApiKey();
-  const model = await chooseModel(input.kind, input.quality);
+  const key = getApiKey(input.apiKey);
+  const model = await chooseModel(input.kind, input.quality, key);
   const references = (input.references ?? []).slice(0, 3).map(item => ({
     type: "image",
     data: stripDataUrl(item.data),

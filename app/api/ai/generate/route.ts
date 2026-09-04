@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateMedia, GeminiApiError, GeminiConfigError, MediaKind, Quality } from "@/lib/gemini/server";
+import { resolveApiKey } from "@/lib/gemini/credential";
 
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const apiKey=await resolveApiKey(request);
     if (!["text", "image", "video"].includes(body.kind)) {
       return NextResponse.json({ error: "Tipo de geração inválido." }, { status: 400 });
     }
@@ -25,6 +27,7 @@ export async function POST(request: NextRequest) {
       aspectRatio: body.aspectRatio,
       resolution: body.resolution,
       references,
+      apiKey,
     });
     return NextResponse.json(result);
   } catch (error) {
