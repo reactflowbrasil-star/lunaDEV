@@ -15,9 +15,11 @@ export async function GET(request:NextRequest){
 
 export async function POST(request:NextRequest){
  try{
-  const {apiKey}=await request.json();
+  const {apiKey, validateOnly}=await request.json();
   if(typeof apiKey!=="string"||apiKey.trim().length<20)return NextResponse.json({error:"Informe uma chave Gemini válida."},{status:400});
   await listModels(apiKey.trim());
+  if(validateOnly)return NextResponse.json({valid:true,message:"Chave válida e aceita pelo Gemini."});
+  if(validateOnly)return NextResponse.json({valid:true,message:"Chave válida e aceita pelo Gemini."});
   const encrypted=await encryptCredential(apiKey.trim());
   const response=NextResponse.json({configured:true,message:"Gemini conectado com sucesso."});
   response.cookies.set(credentialCookieName(),encrypted,{httpOnly:true,secure:true,sameSite:"strict",path:"/",maxAge:60*60*24*30});
