@@ -1,6 +1,6 @@
 "use client";
-import {useEffect,useMemo,useRef,useState} from "react";
-import {ArrowLeft,ArrowRight,Check,Clapperboard,Clock3,Film,GripVertical,Home as HomeIcon,ImagePlus,LayoutGrid,Menu,MoreHorizontal,Play,Plus,RefreshCw,Search,Settings,Sparkles,UploadCloud,UserRound,WandSparkles,X,Zap} from "lucide-react";
+import {useMemo,useRef,useState} from "react";
+import {ArrowLeft,ArrowRight,Check,Clapperboard,Clock3,Copy,Download,Film,GripVertical,Home as HomeIcon,ImagePlus,LayoutGrid,Menu,MoreHorizontal,Play,Plus,RefreshCw,Search,Settings,Sparkles,UploadCloud,UserRound,WandSparkles,X,Zap} from "lucide-react";
 
 type Scene={id:number;tag:string;title:string;text:string;sec:number;cost:number};
 const baseScenes:Scene[]=[
@@ -15,7 +15,7 @@ const formats=["Vídeo UGC","Review de produto","Unboxing","Demonstração","Lif
 export default function Home(){
  const [view,setView]=useState<"home"|"wizard"|"history"|"settings">("home"),[step,setStep]=useState(1);
  const [img,setImg]=useState<string|null>(null),[name,setName]=useState(""),[message,setMessage]=useState("");
- const [generating,setGenerating]=useState(false),[resultUrl,setResultUrl]=useState<string|null>(null),[usedModel,setUsedModel]=useState("");
+ const [generating,setGenerating]=useState(false),[resultImages,setResultImages]=useState<string[]>([]),[videoPrompt,setVideoPrompt]=useState("");
  const [brief,setBrief]=useState(""),[talent,setTalent]=useState(0),[format,setFormat]=useState(formats[0]),[ratio,setRatio]=useState("9:16"),[duration,setDuration]=useState("15s"),[scenes,setScenes]=useState(baseScenes);
  const input=useRef<HTMLInputElement>(null),total=useMemo(()=>scenes.reduce((a,s)=>a+s.cost,0),[scenes]);
  const start=()=>{setView("wizard");setStep(1);setMessage("")};
@@ -24,21 +24,26 @@ export default function Home(){
  const move=(i:number,d:number)=>{let t=i+d;if(t<0||t>=scenes.length)return;let c=[...scenes];[c[i],c[t]]=[c[t],c[i]];setScenes(c)};
  const generate=async()=>{
   if(!img||generating)return;
-  setGenerating(true);setMessage("Verificando o Gemini e preparando sua campanha…");setResultUrl(null);
+  setGenerating(true);setMessage("Criando imagens-base e prompt do vídeo no seu dispositivo…");setResultImages([]);setVideoPrompt("");
   try{
-   const statusResponse=await fetch("/api/ai/status",{cache:"no-store"}),status=await statusResponse.json();
-   if(!statusResponse.ok||!status.configured)throw new Error(status.message||"A chave Gemini não está configurada.");
-   setMessage(`Gerando com ${status.models.video}. Isso pode levar alguns minutos…`);
-   const reference=await blobUrlToDataUrl(img);
-   const direction=scenes.map((s,i)=>`Cena ${i+1} — ${s.tag}: ${s.title}. ${s.text}`).join("\n");
-   const prompt=`Crie uma campanha publicitária ${format}, proporção ${ratio}, duração desejada ${duration}. Preserve fielmente o produto da imagem de referência, incluindo embalagem, logotipo, cores e proporções. Apresentadora: ${talents[talent][0]}, estilo ${talents[talent][1]}. Briefing: ${brief||"não informado"}. Roteiro:\n${direction}\nFala natural exclusivamente em português brasileiro. Não insira textos, legendas, preços, títulos ou elementos tipográficos. Áudio sincronizado, aparência realista e movimentos humanos.`;
-   const response=await fetch("/api/ai/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind:"video",prompt,quality:format==="Comercial cinematográfico"?"premium":"balanced",aspectRatio:ratio,resolution:"720p",references:[{data:reference,mimeType:reference.slice(5,reference.indexOf(";"))}]})});
-   const data=await response.json();
-   if(!response.ok)throw new Error(data.error||"A geração não foi concluída.");
-   if(!data.media?.data)throw new Error("O Gemini não retornou o arquivo do vídeo.");
-   setResultUrl(`data:${data.media.mimeType||"video/mp4"};base64,${data.media.data}`);setUsedModel(data.model);
-   setMessage("Campanha concluída. O vídeo está pronto para visualizar e baixar.");
-  }catch(error){setMessage(error instanceof Error?error.message:"Não foi possível concluir a geração. Nenhum crédito foi consumido.");}
+   const frames=await Promise.all(scenes.map((scene,index)=>createLocalFrame(img,ratio,index,scene.tag)));
+   const direction=scenes.map((s,i)=>`Cena ${i+1} (${s.sec}s) — ${s.tag}: ${s.title}. ${s.text}`).join("\n");
+   const prompt=[
+    `Crie um vídeo publicitário no formato ${format}, proporção ${ratio}, duração total aproximada de ${duration}.`,
+    "Use a imagem do produto enviada como referência visual principal. Preserve com máxima fidelidade embalagem, logotipo, cores, rótulo, formato e proporções do produto.",
+    `Apresentadora/personagem: ${talents[talent][0]} — estilo ${talents[talent][1]}.`,
+    `Briefing da campanha: ${brief.trim()||"produto em destaque, comunicação premium, natural e persuasiva"}.`,
+    "",
+    "ROTEIRO E DIREÇÃO DE CENA:",
+    direction,
+    "",
+    "DIREÇÃO VISUAL: aparência fotorealista, iluminação cinematográfica suave, pele e movimentos humanos naturais, profundidade de campo realista, produto sempre legível e visualmente consistente entre todas as cenas. Alterne close, plano médio e detalhe do produto. Movimentos de câmera suaves, sem deformações e sem trocar a identidade visual da embalagem.",
+    "ÁUDIO: fala natural exclusivamente em português brasileiro, voz humana convincente, sincronização labial precisa quando houver apresentadora, trilha discreta e efeitos sonoros sutis.",
+    "RESTRIÇÕES OBRIGATÓRIAS: não exibir textos, legendas, captions, preços, títulos, marcas d'água, interfaces, botões ou qualquer elemento tipográfico gerado na imagem. Não alterar o logotipo original do produto. Não inventar informações sobre o produto.",
+    "FINALIZAÇÃO: ritmo moderno para redes sociais, primeiro gancho visual forte nos 3 segundos iniciais e encerramento limpo com foco no produto."
+   ].join("\n");
+   setResultImages(frames);setVideoPrompt(prompt);setMessage("Kit criativo pronto — gerado localmente, sem API e sem chave externa.");
+  }catch(error){setMessage(error instanceof Error?error.message:"Não foi possível montar o kit criativo.");}
   finally{setGenerating(false);}
  };
  return <div className="shell">
@@ -57,15 +62,15 @@ export default function Home(){
     {step===3&&<Talent selected={talent} select={setTalent}/>}
     {step===4&&<Format format={format} setFormat={setFormat} ratio={ratio} setRatio={setRatio} duration={duration} setDuration={setDuration}/>}
     {step===5&&<Storyboard scenes={scenes} setScenes={setScenes} move={move} total={total} talent={talents[talent][0]} format={format} ratio={ratio} duration={duration}/>}
-    {resultUrl&&<div className="result"><div><span>CAMPANHA GERADA</span><strong>Modelo: {usedModel}</strong></div><video src={resultUrl} controls playsInline/><a href={resultUrl} download="campanha-lunadev.mp4">Baixar vídeo</a></div>}
-    {message&&<div className={resultUrl?"success notice":"notice"}>{generating&&<i className="spinner"/>}{message}</div>}<div className="actions"><button className="secondary" onClick={()=>step===1?setView("home"):setStep(step-1)}>Voltar</button>{step<5?<button className="primary" onClick={next}>Continuar<ArrowRight/></button>:<button className="primary" disabled={generating} onClick={generate}><Sparkles/>{generating?"Gerando campanha…":`Gerar campanha · ${total} créditos`}</button>}</div>
+    {resultImages.length>0&&<LocalResults images={resultImages} prompt={videoPrompt}/>} 
+    {message&&<div className={resultImages.length?"success notice":"notice"}>{generating&&<i className="spinner"/>}{message}</div>}<div className="actions"><button className="secondary" onClick={()=>step===1?setView("home"):setStep(step-1)}>Voltar</button>{step<5?<button className="primary" onClick={next}>Continuar<ArrowRight/></button>:<button className="primary" disabled={generating} onClick={generate}><Sparkles/>{generating?"Montando kit…":"Gerar imagens + prompt"}</button>}</div>
    </section>}
   </main><nav className="mobileNav"><button className={view==="home"?"active":""} onClick={()=>setView("home")}><HomeIcon/>Início</button><button className="new" onClick={start}><Plus/></button><button className={view==="history"?"active":""} onClick={()=>setView("history")}><LayoutGrid/>Campanhas</button><button className={view==="settings"?"active":""} onClick={()=>setView("settings")}><Settings/>Configurações</button></nav>
  </div>
 }
 
 function Dashboard({start,history}:{start:()=>void;history:()=>void}){return <section className="dashboard"><div className="hello"><div><span>ESTÚDIO CRIATIVO COM IA</span><h1>Olá, Alexandre <b>✦</b></h1><p>Transforme uma foto de produto em uma campanha pronta para publicar.</p></div><button className="primary desk" onClick={start}><Plus/>Criar nova campanha</button></div>
- <button className="hero" onClick={start}><div className="spark"><Sparkles/></div><div><span>COMECE POR AQUI</span><h2>Crie sua próxima campanha</h2><p>Envie o produto. A IA cuida do conceito, modelo, roteiro, cenas e áudio em português.</p><strong>Criar agora <ArrowRight/></strong></div><div className="phone"><i>UGC</i><div><UserRound/><Play/></div><b>9:16 · 15s</b></div></button>
+ <button className="hero" onClick={start}><div className="spark"><Sparkles/></div><div><span>COMECE POR AQUI</span><h2>Crie sua próxima campanha</h2><p>Envie o produto. A Luna monta localmente as imagens-base, o roteiro e o prompt completo do vídeo.</p><strong>Criar agora <ArrowRight/></strong></div><div className="phone"><i>UGC</i><div><UserRound/><Play/></div><b>9:16 · 15s</b></div></button>
  <div className="sectionTitle"><div><h2>Campanhas recentes</h2><p>Continue de onde parou.</p></div><button onClick={history}>Ver todas <ArrowRight/></button></div><div className="grid"><Campaign title="Glow Serum" meta="Vídeo UGC · 15s" status="Concluído" color="peach"/><Campaign title="Urban Sneakers" meta="Lifestyle · 30s" status="Processando 64%" color="blue"/><Campaign title="Café Origem" meta="Produto premium · 15s" status="Rascunho" color="brown"/></div>
  <div className="tip"><Sparkles/><div><strong>Dica da Luna</strong><p>Comece com um gancho visual forte nos primeiros três segundos.</p></div><button onClick={start}>Criar em 9:16</button></div></section>}
 function Campaign({title,meta,status,color}:{title:string;meta:string;status:string;color:string}){return <article className="campaign"><div className={"art "+color}><button><Play/></button><span>{status}</span></div><div><h3>{title}</h3><p>{meta}</p><MoreHorizontal/></div></article>}
@@ -73,17 +78,35 @@ function Product({img,name,input,pick,remove}:any){return <Panel><Intro title="M
 function Brief({brief,setBrief}:any){return <Panel><div className="analysis"><b><Sparkles/></b><div><span>ANÁLISE SUGERIDA</span><h3>Produto de beleza · visual clean e luminoso</h3><p>Público sugerido: pessoas de 20 a 40 anos interessadas em autocuidado. Ambiente: bancada clara com luz natural.</p></div><button><RefreshCw/>Nova sugestão</button></div><label className="field"><span>Conte um pouco sobre o produto <em>opcional</em></span><textarea value={brief} onChange={e=>setBrief(e.target.value)} placeholder="Ex.: Sérum vegano, textura leve, ideal para rotina noturna..."/><small>As informações escritas por você sempre têm prioridade.</small></label><div className="fields">{[["Estilo","Natural e sofisticado"],["Público","20–40 anos"],["Conceito","Brilho que nasce do cuidado"],["Ambiente","Banheiro moderno e claro"]].map(x=><label key={x[0]}><span>{x[0]}</span><input defaultValue={x[1]}/></label>)}</div></Panel>}
 function Talent({selected,select}:any){return <Panel><Intro title="Quem apresenta sua campanha?" text="Escolha uma personagem consistente para todas as cenas."/><div className="talents">{talents.map((t,i)=><button className={selected===i?"selected":""} onClick={()=>select(i)} key={t[0]}><div className={t[2]}><UserRound/>{selected===i&&<i><Check/></i>}</div><strong>{t[0]}</strong><small>{t[1]}</small></button>)}</div><button className="regen"><RefreshCw/>Gerar novas opções</button><div className="info"><UserRound/><p><strong>Consistência visual ativada</strong>A modelo escolhida será usada como referência em cada cena.</p></div></Panel>}
 function Format(p:any){return <Panel><Choice title="Tipo de vídeo"><div className="formats">{formats.map(f=><button className={p.format===f?"selected":""} onClick={()=>p.setFormat(f)} key={f}><Clapperboard/>{f}{p.format===f&&<Check/>}</button>)}</div></Choice><Choice title="Proporção"><div className="ratios">{[["9:16","TikTok, Reels e Shorts"],["1:1","Feed quadrado"],["4:5","Feed Instagram"],["16:9","YouTube e horizontal"]].map(r=><button className={p.ratio===r[0]?"selected":""} onClick={()=>p.setRatio(r[0])} key={r[0]}><i className={"r"+r[0].replace(":","")}/><span><strong>{r[0]}</strong><small>{r[1]}</small></span>{r[0]==="9:16"&&<em>RECOMENDADO</em>}</button>)}</div></Choice><Choice title="Duração"><div className="durations">{["15s","30s","60s"].map(d=><button className={p.duration===d?"selected":""} onClick={()=>p.setDuration(d)} key={d}><Clock3/><strong>{d}</strong><small>{d==="15s"?"Rápido e direto":d==="30s"?"Mais detalhes":"História completa"}</small></button>)}</div></Choice></Panel>}
-function Storyboard(p:any){return <div className="story"><div><Intro title="Seu vídeo, cena por cena" text="Revise a direção criativa antes de usar seus créditos." left/>{p.scenes.map((s:Scene,i:number)=><article className="scene" key={s.id}><div><GripVertical/><span>{String(i+1).padStart(2,"0")}</span></div><figure><Film/><small>{s.sec}s</small></figure><section><span>{s.tag}</span><h3>{s.title}</h3><p>{s.text}</p></section><footer><small>{s.cost} créditos</small><button onClick={()=>p.move(i,-1)}>↑</button><button onClick={()=>p.move(i,1)}>↓</button><button onClick={()=>p.setScenes(p.scenes.filter((x:Scene)=>x.id!==s.id))}><X/></button></footer></article>)}<button className="add" onClick={()=>p.setScenes([...p.scenes,{id:Date.now(),tag:"NOVA CENA",title:"Cena adicional",text:"Defina a ação e o enquadramento.",sec:3,cost:8}])}><Plus/>Adicionar cena</button></div><Summary {...p}/></div>}
-function Summary(p:any){return <div className="summary"><h3>Resumo da campanha</h3><dl>{[["Modelo",p.talent],["Formato",p.format],["Proporção",p.ratio],["Duração",p.duration],["Idioma","Português (Brasil)"]].map(x=><div key={x[0]}><dt>{x[0]}</dt><dd>{x[1]}</dd></div>)}</dl><div className="clean"><Check/><span><strong>Vídeo limpo</strong><small>Sem textos ou legendas</small></span></div><div className="total"><span>Custo estimado</span><strong>{p.total} <small>créditos</small></strong><p>Só debitamos após a geração ser concluída.</p></div></div>}
+function Storyboard(p:any){return <div className="story"><div><Intro title="Seu vídeo, cena por cena" text="Revise a direção criativa antes de gerar o kit local." left/>{p.scenes.map((s:Scene,i:number)=><article className="scene" key={s.id}><div><GripVertical/><span>{String(i+1).padStart(2,"0")}</span></div><figure><Film/><small>{s.sec}s</small></figure><section><span>{s.tag}</span><h3>{s.title}</h3><p>{s.text}</p></section><footer><small>{s.sec}s</small><button onClick={()=>p.move(i,-1)}>↑</button><button onClick={()=>p.move(i,1)}>↓</button><button onClick={()=>p.setScenes(p.scenes.filter((x:Scene)=>x.id!==s.id))}><X/></button></footer></article>)}<button className="add" onClick={()=>p.setScenes([...p.scenes,{id:Date.now(),tag:"NOVA CENA",title:"Cena adicional",text:"Defina a ação e o enquadramento.",sec:3,cost:8}])}><Plus/>Adicionar cena</button></div><Summary {...p}/></div>}
+function Summary(p:any){return <div className="summary"><h3>Resumo da campanha</h3><dl>{[["Modelo",p.talent],["Formato",p.format],["Proporção",p.ratio],["Duração",p.duration],["Idioma","Português (Brasil)"]].map(x=><div key={x[0]}><dt>{x[0]}</dt><dd>{x[1]}</dd></div>)}</dl><div className="clean"><Check/><span><strong>Modo local</strong><small>Sem API, sem chave e sem créditos</small></span></div><div className="total"><span>Saída</span><strong>{p.scenes?.length||4} <small>imagens-base</small></strong><p>+ prompt final completo para geração do vídeo.</p></div></div>}
 function History({start}:{start:()=>void}){return <section className="dashboard"><div className="hello"><div><span>BIBLIOTECA CRIATIVA</span><h1>Minhas campanhas</h1><p>Gerencie vídeos, rascunhos e variações.</p></div><button className="primary" onClick={start}><Plus/>Nova campanha</button></div><div className="filters"><label><Search/><input placeholder="Buscar campanha"/></label><button>Todos os status</button><button>Mais recentes</button></div><div className="grid four"><Campaign title="Glow Serum" meta="Vídeo UGC · 15s · Hoje" status="Concluído" color="peach"/><Campaign title="Urban Sneakers" meta="Lifestyle · 30s · Hoje" status="Processando 64%" color="blue"/><Campaign title="Café Origem" meta="Produto premium · Ontem" status="Rascunho" color="brown"/><Campaign title="Bolsa Aura" meta="Comercial · 15s · 28 ago" status="Concluído" color="purple"/></div></section>}
 function SettingsPanel(){
- const [key,setKey]=useState(""),[status,setStatus]=useState("Verificando…"),[configured,setConfigured]=useState(false),[saving,setSaving]=useState(false),[validating,setValidating]=useState(false),[keyValid,setKeyValid]=useState<boolean|null>(null);
- useEffect(()=>{fetch("/api/settings/gemini",{cache:"no-store"}).then(async r=>({ok:r.ok,data:await r.json()})).then(({ok,data})=>{setConfigured(ok&&data.configured);setStatus(ok&&data.configured?`Gemini conectado · ${data.availableModels} modelos disponíveis · x-goog-api-key`:(data.message||"Gemini ainda não configurado."))}).catch(()=>setStatus("Não foi possível verificar a configuração."))},[]);
- useEffect(()=>{const value=key.trim();setKeyValid(null);if(value.length<20){setValidating(false);return}setValidating(true);const controller=new AbortController(),timer=setTimeout(async()=>{try{const r=await fetch("/api/settings/gemini",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({apiKey:value,validateOnly:true}),signal:controller.signal}),data=await r.json();if(!r.ok)throw new Error(data.error);setKeyValid(true);setStatus("✓ Chave validada em tempo real · autenticação x-goog-api-key pronta.")}catch(error){if((error as Error).name!=="AbortError"){setKeyValid(false);setStatus(error instanceof Error?error.message:"Chave não aceita pelo Gemini.")}}finally{setValidating(false)}},650);return()=>{clearTimeout(timer);controller.abort()}},[key]);
- const save=async(e:React.FormEvent)=>{e.preventDefault();setSaving(true);setStatus("Validando e conectando ao Google Gemini…");try{const r=await fetch("/api/settings/gemini",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({apiKey:key.trim()})}),data=await r.json();if(!r.ok)throw new Error(data.error);setConfigured(true);setKeyValid(true);setKey("");setStatus(data.message+" · x-goog-api-key") }catch(error){setConfigured(false);setKeyValid(false);setStatus(error instanceof Error?error.message:"Não foi possível salvar.")}finally{setSaving(false)}};
- const remove=async()=>{await fetch("/api/settings/gemini",{method:"DELETE"});setConfigured(false);setKeyValid(null);setStatus("Chave removida deste dispositivo.")};
- const keyState=validating?"Validando chave…":keyValid===true?"Chave válida":keyValid===false?"Chave inválida":"Aguardando chave";
- return <section className="dashboard settingsPage"><div className="hello"><div><span>CONFIGURAÇÕES DA IA</span><h1>Google Gemini</h1><p>Cole sua chave na própria Luna. Não é necessário configurar a chave no Netlify.</p></div></div><div className="settingsCard"><div className={configured?"connection connected":"connection"}><i/><div><strong>{configured?"Conectado":"Não conectado"}</strong><p>{status}</p></div></div><form onSubmit={save}><label><span>API Key do Gemini</span><input type="password" autoComplete="off" value={key} onChange={e=>setKey(e.target.value)} placeholder="AQ.••••••••••••••••••••••••" required minLength={20}/><small>{keyState}. A Luna testa automaticamente a chave no Gemini usando x-goog-api-key. A credencial não é exibida novamente após salvar.</small></label><div><button className="primary" disabled={saving||validating||keyValid===false}>{saving?"Conectando…":validating?"Validando…":"Salvar e conectar"}</button>{configured&&<button type="button" className="secondary" onClick={remove}>Remover chave</button>}</div></form></div></section>
+ return <section className="dashboard settingsPage"><div className="hello"><div><span>CONFIGURAÇÕES</span><h1>Modo local</h1><p>A Luna funciona sem API externa para criar o storyboard, as imagens-base e o prompt de vídeo.</p></div></div><div className="settingsCard"><div className="connection connected"><i/><div><strong>Modo local ativo</strong><p>Nenhuma API Key é necessária. O processamento criativo acontece no navegador.</p></div></div><div className="info"><Sparkles/><p><strong>Como funciona</strong>A foto enviada é usada para montar quadros visuais locais. A Luna também cria um prompt completo para você usar no gerador de vídeo de sua preferência.</p></div></div></section>
 }
+
+function LocalResults({images,prompt}:{images:string[];prompt:string}){
+ const [copied,setCopied]=useState(false);
+ const copy=async()=>{await navigator.clipboard.writeText(prompt);setCopied(true);setTimeout(()=>setCopied(false),1400)};
+ return <div className="localResults"><div className="resultHead"><div><span>KIT CRIATIVO LOCAL</span><h2>Imagens-base + prompt do vídeo</h2></div><strong><Check/> Sem API</strong></div><div className="frameGrid">{images.map((src,i)=><figure key={src}><img src={src} alt={`Quadro ${i+1} da campanha`}/><figcaption><span>Cena {String(i+1).padStart(2,"0")}</span><a href={src} download={`luna-cena-${i+1}.png`}><Download/>Baixar</a></figcaption></figure>)}</div><div className="promptBox"><div><span>PROMPT FINAL DO VÍDEO</span><button onClick={copy}><Copy/>{copied?"Copiado":"Copiar prompt"}</button></div><textarea readOnly value={prompt}/></div></div>
+}
+
+async function createLocalFrame(source:string,ratio:string,index:number,label:string){
+ const dimensions:Record<string,[number,number]>={"9:16":[720,1280],"1:1":[1080,1080],"4:5":[1080,1350],"16:9":[1280,720]};
+ const [w,h]=dimensions[ratio]||dimensions["9:16"];
+ const image=await loadImage(source),canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
+ const ctx=canvas.getContext("2d");if(!ctx)throw new Error("Seu navegador não suporta a geração local de imagens.");
+ const gradients=[["#f5efe9","#d8c8f2"],["#ece8ff","#d9eef7"],["#f7eadf","#efe3cf"],["#e9f3ef","#d3e7df"]];
+ const [a,b]=gradients[index%gradients.length],g=ctx.createLinearGradient(0,0,w,h);g.addColorStop(0,a);g.addColorStop(1,b);ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+ ctx.save();ctx.globalAlpha=.11;ctx.fillStyle="#6d28d9";ctx.beginPath();ctx.arc(w*.78,h*.18,Math.min(w,h)*.28,0,Math.PI*2);ctx.fill();ctx.restore();
+ const maxW=w*(index%2===0?.62:.52),maxH=h*(index%3===0?.58:.48),scale=Math.min(maxW/image.width,maxH/image.height);
+ const dw=image.width*scale,dh=image.height*scale,x=(w-dw)/2+(index===1?w*.06:index===2?-w*.05:0),y=(h-dh)/2+(index===0?h*.03:index===3?-h*.04:0);
+ ctx.save();ctx.shadowColor="rgba(35,20,55,.28)";ctx.shadowBlur=Math.max(24,w*.035);ctx.shadowOffsetY=Math.max(12,h*.015);ctx.drawImage(image,x,y,dw,dh);ctx.restore();
+ ctx.fillStyle="rgba(255,255,255,.75)";ctx.beginPath();ctx.roundRect(w*.055,h*.055,w*.2,Math.max(36,h*.038),18);ctx.fill();
+ ctx.fillStyle="#5b21b6";ctx.font=`700 ${Math.max(18,Math.floor(w*.018))}px Arial`;ctx.fillText(label,w*.075,h*.082);
+ return canvas.toDataURL("image/png",.95);
+}
+
+function loadImage(src:string){return new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error("Não foi possível processar a imagem enviada."));image.src=src})}
+
 function Panel({children}:{children:React.ReactNode}){return <div className="panel">{children}</div>}function Intro({title,text,left}:{title:string;text:string;left?:boolean}){return <div className={"intro "+(left?"left":"")}><h2>{title}</h2><p>{text}</p></div>}function Choice({title,children}:{title:string;children:React.ReactNode}){return <div className="choice"><label>{title}</label>{children}</div>}
-async function blobUrlToDataUrl(url:string){const blob=await fetch(url).then(r=>r.blob());return await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Não foi possível ler a imagem do produto."));reader.readAsDataURL(blob)})}
