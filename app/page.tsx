@@ -1,6 +1,6 @@
 "use client";
 import {useMemo,useRef,useState} from "react";
-import {ArrowLeft,ArrowRight,Check,Clapperboard,Clock3,Film,GripVertical,Home,ImagePlus,LayoutGrid,Menu,MoreHorizontal,Play,Plus,RefreshCw,Search,Settings,Sparkles,UploadCloud,UserRound,WandSparkles,X,Zap} from "lucide-react";
+import {ArrowLeft,ArrowRight,Check,Clapperboard,Clock3,Film,GripVertical,Home as HomeIcon,ImagePlus,LayoutGrid,Menu,MoreHorizontal,Play,Plus,RefreshCw,Search,Settings,Sparkles,UploadCloud,UserRound,WandSparkles,X,Zap} from "lucide-react";
 
 type Scene={id:number;tag:string;title:string;text:string;sec:number;cost:number};
 const baseScenes:Scene[]=[
@@ -23,7 +23,7 @@ export default function Home(){
  const move=(i:number,d:number)=>{let t=i+d;if(t<0||t>=scenes.length)return;let c=[...scenes];[c[i],c[t]]=[c[t],c[i]];setScenes(c)};
  return <div className="shell">
   <aside><button className="logo" onClick={()=>setView("home")}><b><Sparkles/></b>luna<span>DEV</span></button><nav>
-   <button className={view==="home"?"on":""} onClick={()=>setView("home")}><Home/>Início</button>
+   <button className={view==="home"?"on":""} onClick={()=>setView("home")}><HomeIcon/>Início</button>
    <button className={view==="wizard"?"on":""} onClick={start}><WandSparkles/>Criar campanha</button>
    <button className={view==="history"?"on":""} onClick={()=>setView("history")}><LayoutGrid/>Minhas campanhas</button>
   </nav><div className="sidefoot"><div className="credit"><div><Zap/>Créditos</div><strong>248</strong><small>de 300 disponíveis</small><i><b/></i></div><button><Settings/>Configurações</button><div className="profile"><b>AL</b><span><strong>Alexandre Lima</strong><small>Plano Creator</small></span><MoreHorizontal/></div></div></aside>
@@ -38,7 +38,7 @@ export default function Home(){
     {step===5&&<Storyboard scenes={scenes} setScenes={setScenes} move={move} total={total} talent={talents[talent][0]} format={format} ratio={ratio} duration={duration}/>}
     {message&&<div className="notice">{message}</div>}<div className="actions"><button className="secondary" onClick={()=>step===1?setView("home"):setStep(step-1)}>Voltar</button>{step<5?<button className="primary" onClick={next}>Continuar<ArrowRight/></button>:<button className="primary" onClick={()=>setMessage("Configure as credenciais Gemini no backend para iniciar a geração real. Nenhum crédito foi consumido.")}><Sparkles/>Gerar campanha · {total} créditos</button>}</div>
    </section>}
-  </main><nav className="mobileNav"><button onClick={()=>setView("home")}><Home/>Início</button><button className="new" onClick={start}><Plus/></button><button onClick={()=>setView("history")}><LayoutGrid/>Campanhas</button></nav>
+  </main><nav className="mobileNav"><button onClick={()=>setView("home")}><HomeIcon/>Início</button><button className="new" onClick={start}><Plus/></button><button onClick={()=>setView("history")}><LayoutGrid/>Campanhas</button></nav>
  </div>
 }
 
