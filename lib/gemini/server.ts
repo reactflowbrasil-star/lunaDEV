@@ -13,9 +13,9 @@ type GeminiModel = {
 
 const FALLBACKS: Record<MediaKind, Record<Quality, string[]>> = {
   text: {
-    economy: ["gemini-3.1-flash-lite", "gemini-flash-latest"],
-    balanced: ["gemini-3.5-flash", "gemini-flash-latest"],
-    premium: ["gemini-3.5-pro", "gemini-3.5-flash"],
+    economy: ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"],
+    balanced: ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash"],
+    premium: ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash"],
   },
   image: {
     economy: ["gemini-3.1-flash-lite-image", "gemini-3.1-flash-image"],
@@ -24,7 +24,7 @@ const FALLBACKS: Record<MediaKind, Record<Quality, string[]>> = {
   },
   video: {
     economy: ["gemini-omni-1.1-flash", "veo-3.1-lite-generate-preview"],
-    balanced: ["gemini-omni-1.1-flash", "veo-3.1-fast-generate-preview"],
+    balanced: ["gemini-omni-1.1-flash", "veo-3.1-lite-generate-preview", "veo-3.1-generate-preview"],
     premium: ["gemini-omni-1.1-flash", "veo-3.1-generate-preview"],
   },
 };
@@ -49,7 +49,7 @@ export class GeminiApiError extends Error {
 export async function listModels(apiKey?:string|null): Promise<GeminiModel[]> {
   const key = getApiKey(apiKey);
   const response = await fetch(`${API_BASE}/models`, {
-    headers: { "x-goog-api-key": key },
+    headers: { "Accept": "application/json", "x-goog-api-key": key },
     cache: "no-store",
     signal: AbortSignal.timeout(15_000),
   });
@@ -105,7 +105,7 @@ export async function generateMedia(input: {
   };
   const response = await fetch(`${API_BASE}/interactions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    headers: { "Accept": "application/json", "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(input.kind === "video" ? 290_000 : 120_000),
   });
@@ -139,6 +139,8 @@ function normalizeRatio(value: string, kind: MediaKind) {
 }
 function publicError(data: any) {
   const code = data?.error?.status;
+  const message = String(data?.error?.message ?? "");
+  if (message.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED")) return "A chave foi reconhecida, mas o método de autenticação usado não é compatível. A Luna já está configurada para usar o header x-goog-api-key; gere uma nova chave AQ. no Google AI Studio se o erro continuar.";
   if (code === "UNAUTHENTICATED" || data?.error?.code === 401) return "A credencial informada não é uma API Key válida do Gemini. Gere uma nova chave no Google AI Studio e salve-a nas Configurações da Luna.";
   if (code === "RESOURCE_EXHAUSTED") return "O limite da API Gemini foi atingido. Tente novamente mais tarde.";
   if (code === "PERMISSION_DENIED") return "A chave não possui acesso ao modelo selecionado ou o faturamento não está ativo.";
