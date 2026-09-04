@@ -5,7 +5,7 @@ import {ArrowLeft,ArrowRight,Check,Clapperboard,Clock3,Copy,Download,Film,GripVe
 type Scene={id:number;tag:string;title:string;text:string;sec:number;cost:number};
 const baseScenes:Scene[]=[
  {id:1,tag:"HOOK",title:"O detalhe que muda tudo",text:"Close no produto e reação natural para prender a atenção.",sec:3,cost:8},
- {id:2,tag:"APRESENTAÇÃO",title:"Conheça o produto",text:"A modelo apresenta o produto em um ambiente cotidiano.",sec:4,cost:8},
+ {id:2,tag:"APRESENTAÇÃO",title:"Conheça o produto",text:"A pessoa selecionada apresenta o produto em um ambiente cotidiano.",sec:4,cost:8},
  {id:3,tag:"DEMONSTRAÇÃO",title:"Produto em uso",text:"Uso real preservando embalagem, cores e proporções.",sec:5,cost:10},
  {id:4,tag:"ENCERRAMENTO",title:"Convite final",text:"Fala natural em português brasileiro e CTA verbal.",sec:3,cost:8}
 ];
@@ -47,8 +47,8 @@ export default function Home(){
     "ROTEIRO E DIREÇÃO DE CENA:",
     direction,
     "",
-    "DIREÇÃO VISUAL: aparência fotorealista, iluminação cinematográfica suave, pele e movimentos humanos naturais, profundidade de campo realista, produto sempre legível e visualmente consistente entre todas as cenas. Alterne close, plano médio e detalhe do produto. Movimentos de câmera suaves, sem deformações e sem trocar a identidade visual da embalagem.",
-    "ÁUDIO: fala natural exclusivamente em português brasileiro, voz humana convincente, sincronização labial precisa quando houver apresentadora, trilha discreta e efeitos sonoros sutis.",
+    "DIREÇÃO VISUAL: aparência fotorealista, iluminação cinematográfica suave, anatomia correta, pele e movimentos humanos naturais, profundidade de campo realista. A pessoa deve segurar, usar ou interagir fisicamente com o produto de forma plausível; mãos e dedos anatomicamente corretos. Produto sempre legível e visualmente consistente entre todas as cenas. Alterne close, plano médio e detalhe do produto. Movimentos de câmera suaves, sem deformações e sem trocar a identidade visual da embalagem.",
+    "ÁUDIO: fala natural exclusivamente em português brasileiro, voz humana convincente, sincronização labial precisa quando a pessoa aparecer falando, trilha discreta e efeitos sonoros sutis.",
     "RESTRIÇÕES OBRIGATÓRIAS: não exibir textos, legendas, captions, preços, títulos, marcas d'água, interfaces, botões ou qualquer elemento tipográfico gerado na imagem. Não alterar o logotipo original do produto. Não inventar informações sobre o produto.",
     "FINALIZAÇÃO: ritmo moderno para redes sociais, primeiro gancho visual forte nos 3 segundos iniciais e encerramento limpo com foco no produto."
    ].join("\n");
@@ -66,7 +66,7 @@ export default function Home(){
    {view==="home"&&<Dashboard start={start} history={()=>setView("history")}/>}
    {view==="history"&&<History start={start}/>}
    {view==="settings"&&<SettingsPanel/>}
-   {view==="wizard"&&<section className="wizard"><div className="wizhead"><button onClick={()=>step===1?setView("home"):setStep(step-1)}><ArrowLeft/></button><div><span>NOVA CAMPANHA</span><h1>{["Seu produto","Briefing inteligente","Escolha a modelo","Formato do conteúdo","Revise o storyboard"][step-1]}</h1></div><strong>{step}<small>/5</small></strong></div><div className="progress">{[1,2,3,4,5].map(n=><i className={n<=step?"done":""} key={n}/>)}</div>
+   {view==="wizard"&&<section className="wizard"><div className="wizhead"><button onClick={()=>step===1?setView("home"):setStep(step-1)}><ArrowLeft/></button><div><span>NOVA CAMPANHA</span><h1>{["Seu produto","Briefing inteligente","Escolha a pessoa","Formato do conteúdo","Revise o storyboard"][step-1]}</h1></div><strong>{step}<small>/5</small></strong></div><div className="progress">{[1,2,3,4,5].map(n=><i className={n<=step?"done":""} key={n}/>)}</div>
     {step===1&&<Product img={img} name={name} input={input} pick={pick} remove={()=>{setImg(null);setName("")}}/>}
     {step===2&&<Brief brief={brief} setBrief={setBrief}/>}
     {step===3&&<Talent selected={talent} select={setTalent}/>}
