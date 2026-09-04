@@ -138,6 +138,7 @@ function normalizeRatio(value: string, kind: MediaKind) {
 }
 function publicError(data: any) {
   const code = data?.error?.status;
+  if (code === "UNAUTHENTICATED" || data?.error?.code === 401) return "A credencial informada não é uma API Key válida do Gemini. Gere uma nova chave no Google AI Studio e salve-a nas Configurações da Luna.";
   if (code === "RESOURCE_EXHAUSTED") return "O limite da API Gemini foi atingido. Tente novamente mais tarde.";
   if (code === "PERMISSION_DENIED") return "A chave não possui acesso ao modelo selecionado ou o faturamento não está ativo.";
   if (code === "INVALID_ARGUMENT") return "O Gemini rejeitou uma configuração da geração. Revise a imagem e o formato.";

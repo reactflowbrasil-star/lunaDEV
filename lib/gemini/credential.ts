@@ -12,15 +12,15 @@ export async function encryptCredential(value:string){
 }
 
 export async function resolveApiKey(request?:NextRequest){
- const environment=process.env.GEMINI_API_KEY??process.env.GOOGLE_API_KEY;
- if(environment)return environment;
  const stored=request?.cookies.get(COOKIE)?.value;
- if(!stored)return null;
- try{
-  const [iv,data]=stored.split(".");
-  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:fromBase64(iv)},await encryptionKey(),fromBase64(data));
-  return new TextDecoder().decode(plain);
- }catch{return null}
+ if(stored){
+  try{
+   const [iv,data]=stored.split(".");
+   const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:fromBase64(iv)},await encryptionKey(),fromBase64(data));
+   return new TextDecoder().decode(plain);
+  }catch{}
+ }
+ return process.env.GEMINI_API_KEY??process.env.GOOGLE_API_KEY??null;
 }
 
 async function encryptionKey(){
