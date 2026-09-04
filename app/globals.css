@@ -22,3 +22,24 @@
 .promptBox textarea{width:100%;min-height:260px;border:1px solid #e5dff0;border-radius:12px;padding:14px;resize:vertical;background:white;line-height:1.55;color:#3f3848}
 @media(max-width:950px){.frameGrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.localResults{padding:14px}.resultHead{align-items:flex-start}.resultHead h2{font-size:18px}.frameGrid{grid-template-columns:1fr 1fr}.promptBox textarea{min-height:330px}}
+
+.modelTools{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 18px}
+.modelTabs{display:flex;gap:8px;flex-wrap:wrap}
+.modelTabs button{border:1px solid var(--line);background:#f7f5fa;padding:10px 16px;border-radius:10px;font-weight:700;color:#625a6b}
+.modelTabs button.active{background:var(--violet);color:#fff;border-color:var(--violet)}
+.modelSearch{min-width:250px;display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:11px;padding:0 11px}
+.modelSearch svg{width:17px;color:#82778d}
+.modelSearch input{border:0;outline:0;width:100%;padding:11px 2px;background:transparent}
+.modelGallery{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.modelGallery>button{border:1px solid var(--line);background:#fff;border-radius:16px;padding:8px;text-align:left;transition:.18s;overflow:hidden}
+.modelGallery>button:hover{transform:translateY(-2px);box-shadow:0 8px 24px #2f1b4b12}
+.modelGallery>button.selected{border:2px solid #8b5cf6;background:#faf8ff}
+.modelPhoto{height:190px;border-radius:12px;overflow:hidden;position:relative;background:#ece8f1}
+.modelPhoto img{width:100%;height:100%;object-fit:cover;display:block;image-rendering:auto}
+.modelPhoto i{position:absolute;right:8px;top:8px;width:28px;height:28px;border-radius:50%;background:var(--violet);color:#fff;display:grid;place-items:center}
+.modelPhoto i svg{width:16px}
+.modelGallery strong,.modelGallery small,.modelGallery em{display:block;padding:5px 4px 0}
+.modelGallery small{font-size:11px;color:#867e8c}
+.modelGallery em{font-size:10px;color:#6d28d9;font-style:normal;font-weight:700;padding-bottom:5px}
+@media(max-width:950px){.modelGallery{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:650px){.modelTools{display:grid}.modelSearch{min-width:0}.modelGallery{grid-template-columns:1fr 1fr}.modelPhoto{height:165px}}
