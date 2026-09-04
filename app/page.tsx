@@ -51,7 +51,7 @@ export default function Home(){
    <button className={view==="home"?"on":""} onClick={()=>setView("home")}><HomeIcon/>Início</button>
    <button className={view==="wizard"?"on":""} onClick={start}><WandSparkles/>Criar campanha</button>
    <button className={view==="history"?"on":""} onClick={()=>setView("history")}><LayoutGrid/>Minhas campanhas</button>
-  </nav><div className="sidefoot"><div className="credit"><div><Zap/>Créditos</div><strong>248</strong><small>de 300 disponíveis</small><i><b/></i></div><button onClick={()=>setView("settings")}><Settings/>Configurações</button><div className="profile"><b>AL</b><span><strong>Alexandre Lima</strong><small>Plano Creator</small></span><MoreHorizontal/></div></div></aside>
+  </nav><div className="sidefoot"><div className="credit"><div><Zap/>Modo local</div><strong>∞</strong><small>gerações locais ilimitadas</small><i><b/></i></div><button onClick={()=>setView("settings")}><Settings/>Configurações</button><div className="profile"><b>AL</b><span><strong>Alexandre Lima</strong><small>Plano Creator</small></span><MoreHorizontal/></div></div></aside>
   <main><header><button className="logo"><b><Sparkles/></b>luna<span>DEV</span></button><Menu/></header>
    {view==="home"&&<Dashboard start={start} history={()=>setView("history")}/>}
    {view==="history"&&<History start={start}/>}
@@ -69,7 +69,7 @@ export default function Home(){
  </div>
 }
 
-function Dashboard({start,history}:{start:()=>void;history:()=>void}){return <section className="dashboard"><div className="hello"><div><span>ESTÚDIO CRIATIVO COM IA</span><h1>Olá, Alexandre <b>✦</b></h1><p>Transforme uma foto de produto em uma campanha pronta para publicar.</p></div><button className="primary desk" onClick={start}><Plus/>Criar nova campanha</button></div>
+function Dashboard({start,history}:{start:()=>void;history:()=>void}){return <section className="dashboard"><div className="hello"><div><span>ESTÚDIO CRIATIVO COM IA</span><h1>Olá, Alexandre <b>✦</b></h1><p>Transforme uma foto de produto em imagens-base e um prompt completo de vídeo, sem API.</p></div><button className="primary desk" onClick={start}><Plus/>Criar nova campanha</button></div>
  <button className="hero" onClick={start}><div className="spark"><Sparkles/></div><div><span>COMECE POR AQUI</span><h2>Crie sua próxima campanha</h2><p>Envie o produto. A Luna monta localmente as imagens-base, o roteiro e o prompt completo do vídeo.</p><strong>Criar agora <ArrowRight/></strong></div><div className="phone"><i>UGC</i><div><UserRound/><Play/></div><b>9:16 · 15s</b></div></button>
  <div className="sectionTitle"><div><h2>Campanhas recentes</h2><p>Continue de onde parou.</p></div><button onClick={history}>Ver todas <ArrowRight/></button></div><div className="grid"><Campaign title="Glow Serum" meta="Vídeo UGC · 15s" status="Concluído" color="peach"/><Campaign title="Urban Sneakers" meta="Lifestyle · 30s" status="Processando 64%" color="blue"/><Campaign title="Café Origem" meta="Produto premium · 15s" status="Rascunho" color="brown"/></div>
  <div className="tip"><Sparkles/><div><strong>Dica da Luna</strong><p>Comece com um gancho visual forte nos primeiros três segundos.</p></div><button onClick={start}>Criar em 9:16</button></div></section>}
